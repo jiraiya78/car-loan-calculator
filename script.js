@@ -36,7 +36,8 @@ function switchTab(tabName) {
 
 // Dynamically generate early selling choices limited by maximum tenure length
 function updateSellEarlyOptions() {
-  const totalTermMonths = parseInt(document.getElementById("loan-term").value);
+  const totalTermMonths =
+    parseInt(document.getElementById("loan-term").value) || 84;
   const maxYears = totalTermMonths / 12;
   const sellEarlySelect = document.getElementById("sell-early");
 
@@ -44,7 +45,7 @@ function updateSellEarlyOptions() {
   sellEarlySelect.innerHTML =
     '<option value="no">No, keep until loan ends</option>';
 
-  for (let y = 2; y <= 8; y++) {
+  for (let y = 2; y <= 9; y++) {
     if (y < maxYears) {
       const opt = document.createElement("option");
       opt.value = y;
@@ -60,12 +61,11 @@ function updateSellEarlyOptions() {
   }
 }
 
-// BANK NEGARA COMPLIANT ACCURATE CAR LOAN INSTALMENT CALCULATOR
-function getMonthlyInstalment(principal, annualRatePct, months, ruleType) {
-  // Under Malaysian 2026 HP rules, the flat interest schedule sets the standard baseline monthly commitment tier
+// FIXED: BANK NEGARA COMPLIANT CAR LOAN INSTALMENT CALCULATOR
+function getMonthlyInstalment(principal, annualRatePct, months) {
+  // Correcting the variable typo so the formula doesn't halt execution
   const flatAnnualInterest = principal * (annualRatePct / 100);
   const totalInterestOverTenure = flatAnnualInterest * (months / 12);
-  const totalOutflow = principal + totalInterestPaid;
   const standardPayment = (principal + totalInterestOverTenure) / months;
 
   return standardPayment;
@@ -79,19 +79,26 @@ function calculateAll() {
     parseFloat(document.getElementById("down-payment").value) || 0;
   const rateInput =
     parseFloat(document.getElementById("interest-rate").value) || 0;
-  const totalTermMonths = parseInt(document.getElementById("loan-term").value);
+  const totalTermMonths =
+    parseInt(document.getElementById("loan-term").value) || 84;
   const sellEarlyOpt = document.getElementById("sell-early").value;
   const loanRuleType = document.getElementById("loan-rule").value;
 
   const principal = carPrice - downPayment;
-  if (principal <= 0 || carPrice <= 0) return;
 
-  // Fixed math parameters yielding exact localized bank rates
+  // UI Safeguard if principal goes negative or fields are empty
+  if (principal <= 0 || carPrice <= 0) {
+    document.getElementById("res-monthly").innerText = "RM 0.00";
+    document.getElementById("res-total-paid").innerText = "RM 0.00";
+    document.getElementById("res-car-value").innerText = "RM 0.00";
+    document.getElementById("res-total-loss").innerText = "RM 0.00";
+    return;
+  }
+
   const monthlyPayment = getMonthlyInstalment(
     principal,
     rateInput,
     totalTermMonths,
-    loanRuleType,
   );
   const baselineTotalInterest =
     principal * (rateInput / 100) * (totalTermMonths / 12);
@@ -112,9 +119,10 @@ function calculateAll() {
   let evaluationTotalOutflow = 0;
   if (isEarlySale) {
     let remainingLoanBalance = 0;
+    const remainingInstallments = totalTermMonths - analysisMonths;
+
     if (loanRuleType === "old") {
-      // Deprecated front-loaded legacy Rule of 78 formula mapping
-      const remainingInstallments = totalTermMonths - analysisMonths;
+      // Front-loaded legacy Rule of 78 formula
       const sumTotal = (totalTermMonths * (totalTermMonths + 1)) / 2;
       const sumRemaining =
         (remainingInstallments * (remainingInstallments + 1)) / 2;
@@ -122,10 +130,8 @@ function calculateAll() {
       remainingLoanBalance =
         monthlyPayment * remainingInstallments - interestRebate;
     } else {
-      // 2026 Reducing Balance Settlement tracking (No arbitrary frontloaded weight bias)
-      const remainingInstallments = totalTermMonths - analysisMonths;
+      // 2026 Reducing Balance Settlement tracking
       const averageInterestPerMonth = baselineTotalInterest / totalTermMonths;
-      // Linear real-time principal collection tracking protection safeguards
       remainingLoanBalance =
         monthlyPayment * remainingInstallments -
         averageInterestPerMonth * remainingInstallments * 0.15;
@@ -139,14 +145,20 @@ function calculateAll() {
   }
 
   // Dynamic Depreciation Weights mapping your segments condition scenario directly
-  let depreciationRate = 0.09;
-  let finalCarValue = carPrice * Math.pow(1 - depreciationRate, analysisYears);
-
+  let finalCarValue = 0;
   if (condition === "used") {
-    // High luxury segment class initial entry anchor representation adjustments
-    finalCarValue = carPrice * 1.4 * Math.pow(1 - 0.14, analysisYears + 3);
+    // A used car priced at 60k was worth 100k when new (approx 1.66x original value).
+    // It has already completed its heaviest depreciation hit, so it loses value slightly slower now (e.g., 7% yearly).
+    const originalEstimatedValue = carPrice * 1.66;
+    finalCarValue =
+      originalEstimatedValue * Math.pow(1 - 0.12, analysisYears + 4);
+
+    // Safety cap to keep calculations bounded realistically
     if (finalCarValue > carPrice)
-      finalCarValue = carPrice * Math.pow(1 - 0.08, analysisYears);
+      finalCarValue = carPrice * Math.pow(1 - 0.07, analysisYears);
+  } else {
+    // New car suffers standard, heavy initial year depreciation layers (9% standard)
+    finalCarValue = carPrice * Math.pow(1 - 0.09, analysisYears);
   }
 
   const absoluteLoss = evaluationTotalOutflow - finalCarValue;
@@ -160,8 +172,8 @@ function calculateAll() {
 
   document.getElementById("res-total-loss").innerHTML = `
         <div style="font-size: 24px; margin-bottom: 5px;">${formatMYR(absoluteLoss)}</div>
-        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">📉 ~${formatMYR(absoluteLoss / analysisYears)} / year</div>
-        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">📉 ~${formatMYR(absoluteLoss / analysisMonths)} / month</div>
+        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">跌 ~${formatMYR(absoluteLoss / analysisYears)} / year</div>
+        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">跌 ~${formatMYR(absoluteLoss / analysisMonths)} / month</div>
     `;
 
   // Render dynamic visual graph models
@@ -193,7 +205,6 @@ function calculateYearlyDataPoints(
     principal,
     rateInput,
     totalTermMonths,
-    loanRuleType,
   );
   const baselineTotalInterest =
     principal * (rateInput / 100) * (totalTermMonths / 12);
@@ -209,8 +220,9 @@ function calculateYearlyDataPoints(
 
     if (y < maxYears) {
       let remainingLoanBalance = 0;
+      const remainingInstallments = totalTermMonths - currentMonths;
+
       if (loanRuleType === "old") {
-        const remainingInstallments = totalTermMonths - currentMonths;
         const sumTotal = (totalTermMonths * (totalTermMonths + 1)) / 2;
         const sumRemaining =
           (remainingInstallments * (remainingInstallments + 1)) / 2;
@@ -219,7 +231,6 @@ function calculateYearlyDataPoints(
         remainingLoanBalance =
           monthlyPayment * remainingInstallments - interestRebate;
       } else {
-        const remainingInstallments = totalTermMonths - currentMonths;
         const averageInterestPerMonth = baselineTotalInterest / totalTermMonths;
         remainingLoanBalance =
           monthlyPayment * remainingInstallments -
@@ -233,11 +244,14 @@ function calculateYearlyDataPoints(
       evaluationTotalOutflow = downPayment + monthlyPayment * totalTermMonths;
     }
 
-    let currentCarValue = carPrice * Math.pow(1 - 0.09, y);
+    let currentCarValue = 0;
     if (condition === "used") {
-      currentCarValue = carPrice * 1.4 * Math.pow(1 - 0.14, y + 3);
+      const originalEstimatedValue = carPrice * 1.66;
+      currentCarValue = originalEstimatedValue * Math.pow(1 - 0.12, y + 4);
       if (currentCarValue > carPrice)
-        currentCarValue = carPrice * Math.pow(1 - 0.08, y);
+        currentCarValue = carPrice * Math.pow(1 - 0.07, y);
+    } else {
+      currentCarValue = carPrice * Math.pow(1 - 0.09, y);
     }
 
     data.payments.push(evaluationTotalOutflow);
@@ -247,7 +261,10 @@ function calculateYearlyDataPoints(
 }
 
 function renderLineChart(chartPoints) {
-  const ctx = document.getElementById("lossLineChart").getContext("2d");
+  const canvasElement = document.getElementById("lossLineChart");
+  if (!canvasElement) return; // Fail-soft if template canvas missing
+
+  const ctx = canvasElement.getContext("2d");
   if (lossChartInstance !== null) {
     lossChartInstance.destroy();
   }
@@ -302,13 +319,13 @@ function calculateTarget() {
   const maxRate = parseFloat(document.getElementById("target-rate").value) || 0;
   const tableBody = document.getElementById("target-table-body");
 
+  if (!tableBody) return;
   tableBody.innerHTML = "";
   if (targetMonthly <= 0) return;
 
   const terms = [48, 60, 72, 84, 96, 108];
 
   terms.forEach((months) => {
-    // Reverse calculation maps exactly matching local loan parameters layout
     const totalPrincipalInstallments = targetMonthly * months;
     const totalInterestFactor = 1 + (maxRate / 100) * (months / 12);
     const maxPrincipal = totalPrincipalInstallments / totalInterestFactor;
@@ -326,8 +343,36 @@ function calculateTarget() {
   });
 }
 
-// Init bootstrap routines
-window.onload = function () {
+// Event bindings to link the calculation engine safely to HTML inputs
+document.addEventListener("DOMContentLoaded", function () {
+  const inputIds = [
+    "car-condition",
+    "car-price",
+    "down-payment",
+    "interest-rate",
+    "loan-term",
+    "sell-early",
+    "loan-rule",
+  ];
+  inputIds.forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener("change", calculateAll);
+      element.addEventListener("input", calculateAll);
+    }
+  });
+
+  const loanTermInput = document.getElementById("loan-term");
+  if (loanTermInput) {
+    loanTermInput.addEventListener("change", updateSellEarlyOptions);
+  }
+
+  const targetInput = document.getElementById("target-monthly");
+  const targetRateInput = document.getElementById("target-rate");
+  if (targetInput) targetInput.addEventListener("input", calculateTarget);
+  if (targetRateInput)
+    targetRateInput.addEventListener("input", calculateTarget);
+
   updateSellEarlyOptions();
   calculateAll();
-};
+});
