@@ -1,4 +1,15 @@
-// Tab Switching System (Fixed event handler issue)
+// Helper Function: Format numbers with thousands commas and 2 decimals
+function formatMYR(num) {
+  return (
+    "RM " +
+    num.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  );
+}
+
+// Tab Switching System
 function switchTab(tabName) {
   document
     .querySelectorAll(".tab-content")
@@ -9,7 +20,6 @@ function switchTab(tabName) {
 
   if (tabName === "analysis") {
     document.getElementById("analysis-tab").classList.add("active");
-    // Find the analysis button using an explicit query selector instead of event.target
     document
       .querySelector("button[onclick*='analysis']")
       .classList.add("active");
@@ -26,7 +36,6 @@ function flatToEIR(flatRate, months) {
   if (flatRate === 0) return 0;
   const t = months / 12;
   const totalInterest = flatRate * t;
-  // Approximated conversion formula used commonly by financial systems
   return (2 * months * totalInterest) / (months * (1 + totalInterest) + 100);
 }
 
@@ -43,10 +52,10 @@ function calculateAll() {
 
   const principal = carPrice - downPayment;
   if (principal <= 0 || carPrice <= 0) {
-    document.getElementById("res-monthly").innerText = "RM 0.00";
-    document.getElementById("res-total-paid").innerText = "RM 0.00";
-    document.getElementById("res-car-value").innerText = "RM 0.00";
-    document.getElementById("res-total-loss").innerText = "RM 0.00";
+    document.getElementById("res-monthly").innerText = formatMYR(0);
+    document.getElementById("res-total-paid").innerText = formatMYR(0);
+    document.getElementById("res-car-value").innerText = formatMYR(0);
+    document.getElementById("res-total-loss").innerText = formatMYR(0);
     document.getElementById("bar-value").style.width = "0%";
     document.getElementById("bar-loss").style.width = "0%";
     return;
@@ -58,7 +67,6 @@ function calculateAll() {
 
   // 1. Calculate Loan Structure based on Rule Type
   if (document.getElementById("loan-rule").value === "old") {
-    // OLD SYSTEM: Flat interest rate
     const annualizedInterest = principal * (rateInput / 100);
     totalInterestPaid = annualizedInterest * (totalTermMonths / 12);
     totalPaidOverTenure = principal + totalInterestPaid;
@@ -99,7 +107,6 @@ function calculateAll() {
   if (isEarlySale) {
     let remainingLoanBalance = 0;
     if (document.getElementById("loan-rule").value === "old") {
-      // Rule of 78 formula for outstanding balance settlement
       const totalInstallments = totalTermMonths;
       const remainingInstallments = totalInstallments - analysisMonths;
       const sumTotal = (totalInstallments * (totalInstallments + 1)) / 2;
@@ -109,7 +116,6 @@ function calculateAll() {
       remainingLoanBalance =
         monthlyPayment * remainingInstallments - interestRebate;
     } else {
-      // Standard reducing balance remaining principal calculation
       const estimatedEIR = flatToEIR(rateInput / 100, totalTermMonths);
       const monthlyRate = estimatedEIR / 12;
       remainingLoanBalance = principal;
@@ -133,16 +139,22 @@ function calculateAll() {
 
   // 5. Net Financial Losses Calculation
   const absoluteLoss = evaluationTotalOutflow - finalCarValue;
+  const lossPerYear = absoluteLoss / analysisYears;
+  const lossPerMonth = absoluteLoss / analysisMonths;
 
-  // 6. UI Render Updates
-  document.getElementById("res-monthly").innerText =
-    `RM ${monthlyPayment.toFixed(2)}`;
-  document.getElementById("res-total-paid").innerText =
-    `RM ${evaluationTotalOutflow.toFixed(2)}`;
-  document.getElementById("res-car-value").innerText =
-    `RM ${finalCarValue.toFixed(2)}`;
-  document.getElementById("res-total-loss").innerText =
-    `RM ${absoluteLoss.toFixed(2)}`;
+  // 6. UI Render Updates with formatted numbers
+  document.getElementById("res-monthly").innerText = formatMYR(monthlyPayment);
+  document.getElementById("res-total-paid").innerText = formatMYR(
+    evaluationTotalOutflow,
+  );
+  document.getElementById("res-car-value").innerText = formatMYR(finalCarValue);
+
+  // Detailed multi-line display layout within our loss container element
+  document.getElementById("res-total-loss").innerHTML = `
+        <div style="font-size: 24px; margin-bottom: 5px;">${formatMYR(absoluteLoss)}</div>
+        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">📉 ~${formatMYR(lossPerYear)} / year</div>
+        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">📉 ~${formatMYR(lossPerMonth)} / month</div>
+    `;
 
   // 7. Graph Render Logic via CSS Percentage Segments
   const combinedTotalVal = evaluationTotalOutflow;
@@ -185,8 +197,8 @@ function calculateTarget() {
     const row = document.createElement("tr");
     row.innerHTML = `
             <td><strong>${months / 12} Years</strong> (${months} mos)</td>
-            <td class="text-green">RM ${maxCarPrice.toFixed(2)}</td>
-            <td class="text-red">RM ${totalInterest.toFixed(2)}</td>
+            <td class="text-green">${formatMYR(maxCarPrice)}</td>
+            <td class="text-red">${formatMYR(totalInterest)}</td>
         `;
     tableBody.appendChild(row);
   });
