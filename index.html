@@ -3,304 +3,523 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Car Ownership Losses Analysis (MYR)</title>
-        <link rel="stylesheet" href="style.css" />
+        <title>Malaysian Auto Finance Smart Suite</title>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                background: #0f172a;
+                color: #f8fafc;
+                margin: 0;
+                padding: 20px;
+            }
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            .tabs {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 20px;
+                border-bottom: 1px solid #334155;
+                padding-bottom: 10px;
+            }
+            .tab-btn {
+                background: #1e293b;
+                border: 1px solid #334155;
+                color: #94a3b8;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 500;
+            }
+            .tab-btn.active {
+                background: #38bdf8;
+                color: #0f172a;
+                border-color: #38bdf8;
+            }
+            .tab-content {
+                display: none;
+            }
+            .tab-content.active {
+                display: block;
+            }
+            .resource-link-banner {
+                background: rgba(14, 165, 233, 0.1);
+                border: 1px solid rgba(56, 189, 248, 0.3);
+                padding: 12px 16px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .resource-link-banner a {
+                color: #38bdf8;
+                text-decoration: none;
+                font-weight: bold;
+            }
+            .resource-link-banner a:hover {
+                text-decoration: underline;
+            }
+            .grid-layout {
+                display: grid;
+                grid-template-columns: 1fr 2fr;
+                gap: 20px;
+            }
+            @media (max-width: 768px) {
+                .grid-layout {
+                    grid-template-columns: 1fr;
+                }
+            }
+            .card {
+                background: #1e293b;
+                padding: 20px;
+                border-radius: 8px;
+                border: 1px solid #334155;
+                margin-bottom: 20px;
+            }
+            .form-group {
+                margin-bottom: 15px;
+            }
+            label {
+                display: block;
+                font-size: 14px;
+                color: #94a3b8;
+                margin-bottom: 6px;
+            }
+            input,
+            select {
+                width: 100%;
+                padding: 10px;
+                background: #0f172a;
+                border: 1px solid #475569;
+                color: white;
+                border-radius: 4px;
+                box-sizing: border-box;
+            }
+            .metrics-panel {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            .metric-card {
+                background: #0f172a;
+                padding: 15px;
+                border-radius: 6px;
+                border: 1px solid #334155;
+                text-align: center;
+            }
+            .metric-val {
+                font-size: 20px;
+                font-weight: bold;
+                color: #38bdf8;
+                margin-top: 5px;
+            }
+            .text-green {
+                color: #10b981;
+            }
+            .text-red {
+                color: #f43f5e;
+            }
+            .chart-container {
+                position: relative;
+                height: 300px;
+                width: 100%;
+                margin-top: 15px;
+            }
+            .comparison-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+            }
+            .comparison-table th,
+            .comparison-table td {
+                border: 1px solid #334155;
+                padding: 12px;
+                text-align: center;
+            }
+            .comparison-table th:first-child,
+            .comparison-table td:first-child {
+                text-align: left;
+            }
+            .comparison-table tr:nth-child(even) {
+                background: rgba(30, 41, 59, 0.5);
+            }
+            .btn-action {
+                background: #38bdf8;
+                color: #0f172a;
+                border: none;
+                font-weight: bold;
+                padding: 6px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+                text-decoration: none;
+                display: inline-block;
+            }
+            .btn-action:hover {
+                background: #0ea5e9;
+            }
+            .insight-box {
+                background: rgba(56, 189, 248, 0.05);
+                border: 1px solid #38bdf8;
+                border-radius: 6px;
+                padding: 12px;
+                margin-bottom: 15px;
+                font-size: 13px;
+                line-height: 1.5;
+            }
+        </style>
     </head>
     <body>
-        <div class="app-container">
-            <h1>🚗 Car Ownership Losses Analysis</h1>
-            <p class="subtitle">
-                Understand the real financial toll of vehicle depreciation and
-                interest in Malaysia
-            </p>
+        <div class="container">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('analysis')">
+                    Financial Asset Simulator
+                </button>
+                <button class="tab-btn" onclick="switchTab('comparison')">
+                    Cross Variant Matrix
+                </button>
+                <button class="tab-btn" onclick="switchTab('target')">
+                    Car Price Finder
+                </button>
+            </div>
 
-            <div class="resource-link">
-                ℹ️ Check current market interest rates on
-                <a href="https://ringgitplus.com/en/car-loan" target="_blank"
-                    >RinggitPlus Car Loans</a
+            <div class="resource-link-banner">
+                💡 <strong>Market Resource Link:</strong> Compare real-time
+                financial market interest offers directly at
+                <a
+                    href="https://ringgitplus.com/en/car-loan/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >RinggitPlus Car Loan Engine ↗</a
                 >
             </div>
 
-            <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('analysis')">
-                    Loss Analysis
-                </button>
-                <button class="tab-btn" onclick="switchTab('target')">
-                    Target Budgeting
-                </button>
-            </div>
-
             <div id="analysis-tab" class="tab-content active">
-                <div class="grid-container">
-                    <div class="input-section">
-                        <h3>Vehicle & Loan Details</h3>
+                <div class="grid-layout">
+                    <div class="control-panel">
+                        <div class="card">
+                            <h3 style="margin-top: 0; color: #38bdf8">
+                                Asset Profile
+                            </h3>
 
-                        <div class="input-group">
-                            <label>Condition</label>
-                            <select
-                                id="car-condition"
-                                onchange="calculateAll()"
-                            >
-                                <option value="new">New Car</option>
-                                <option value="used">Used Car</option>
-                            </select>
-                        </div>
-
-                        <!-- Used Car Context Sub-Form Configuration Group -->
-                        <div
-                            id="used-options-wrapper"
-                            style="
-                                display: none;
-                                margin-top: 15px;
-                                background: #1e293b;
-                                padding: 15px;
-                                border-radius: 6px;
-                                border: 1px solid #334155;
-                            "
-                        >
-                            <div style="margin-bottom: 12px">
-                                <label
-                                    style="
-                                        display: block;
-                                        font-size: 14px;
-                                        margin-bottom: 5px;
-                                        color: #94a3b8;
-                                    "
-                                    >Used Car Market Price Target</label
-                                >
-                                <select
-                                    id="used-list-price"
-                                    style="
-                                        width: 100%;
-                                        padding: 10px;
-                                        background: #0f172a;
-                                        border: 1px solid #475569;
-                                        color: white;
-                                        border-radius: 4px;
-                                    "
-                                >
-                                    <option value="30000">RM 30,000</option>
-                                    <option value="40000">RM 40,000</option>
-                                    <option value="50000">RM 50,000</option>
-                                    <option value="60000" selected>
-                                        RM 60,000
+                            <div class="form-group">
+                                <label>Asset Sourcing Tier</label>
+                                <select id="car-condition">
+                                    <option value="new">
+                                        Brand New Showroom Delivery
                                     </option>
-                                    <option value="70000">RM 70,000</option>
-                                    <option value="80000">RM 80,000</option>
-                                    <option value="100000">RM 100,000</option>
-                                    <option value="120000">RM 120,000</option>
+                                    <option value="used">
+                                        Pre-Owned / Used Market Segment
+                                    </option>
                                 </select>
                             </div>
 
-                            <div>
-                                <label
-                                    style="
-                                        display: block;
-                                        font-size: 14px;
-                                        margin-bottom: 5px;
-                                        color: #94a3b8;
-                                    "
-                                    >Vehicle Age (Since Manufacture)</label
-                                >
-                                <select
-                                    id="car-age"
-                                    style="
-                                        width: 100%;
-                                        padding: 10px;
-                                        background: #0f172a;
-                                        border: 1px solid #475569;
-                                        color: white;
-                                        border-radius: 4px;
-                                    "
-                                >
-                                    <option value="2">2 Years Old</option>
-                                    <option value="3">3 Years Old</option>
-                                    <option value="4">4 Years Old</option>
-                                    <option value="5" selected>
-                                        5 Years Old
-                                    </option>
-                                    <option value="6">6 Years Old</option>
-                                    <option value="7">7 Years Old</option>
-                                    <option value="8">8 Years Old</option>
-                                    <option value="9">9 Years Old</option>
-                                    <option value="10">10 Years Old</option>
-                                    <option value="11">11 Years Old</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Output target placeholder node for reverse math string calculations injection -->
-                        <div
-                            id="used-car-notes"
-                            style="display: none; margin-bottom: 15px"
-                        ></div>
-
-                        <div class="input-group">
-                            <label>Car List Price (RM)</label>
-                            <input
-                                type="number"
-                                id="car-price"
-                                value="90000"
-                                oninput="calculateAll()"
-                            />
-                        </div>
-
-                        <div class="input-group">
-                            <label>Down Payment (RM)</label>
-                            <input
-                                type="number"
-                                id="down-payment"
-                                value="9000"
-                                oninput="calculateAll()"
-                            />
-                        </div>
-
-                        <div class="input-group">
-                            <label>Loan Rule Type</label>
-                            <select id="loan-rule" onchange="calculateAll()">
-                                <option value="new">
-                                    New Rule (Reducing Balance / EIR)
-                                </option>
-                                <option value="old">
-                                    Old Rule (Flat Rate / Rule of 78)
-                                </option>
-                            </select>
-                        </div>
-
-                        <div class="input-group">
-                            <label>Interest Rate (% p.a.)</label>
-                            <input
-                                type="number"
-                                id="interest-rate"
-                                value="3.2"
-                                step="0.1"
-                                oninput="calculateAll()"
-                            />
-                        </div>
-
-                        <div class="input-group">
-                            <label>Loan Tenure</label>
-                            <select
-                                id="loan-term"
-                                onchange="
-                                    updateSellEarlyOptions();
-                                    calculateAll();
+                            <div
+                                id="used-options-wrapper"
+                                style="
+                                    display: none;
+                                    margin-bottom: 15px;
+                                    background: #0f172a;
+                                    padding: 15px;
+                                    border-radius: 6px;
+                                    border: 1px solid #334155;
                                 "
                             >
-                                <option value="48">4 Years</option>
-                                <option value="60">5 Years</option>
-                                <option value="72">6 Years</option>
-                                <option value="84" selected>
-                                    7 Years (Default)
-                                </option>
-                                <option value="96">8 Years</option>
-                                <option value="108">9 Years</option>
-                            </select>
+                                <div class="form-group">
+                                    <label
+                                        >Used Market Reference List
+                                        Valuation</label
+                                    >
+                                    <select id="used-list-price">
+                                        <option value="30000">RM 30,000</option>
+                                        <option value="40000">RM 40,000</option>
+                                        <option value="50000">RM 50,000</option>
+                                        <option value="60000" selected>
+                                            RM 60,000
+                                        </option>
+                                        <option value="70000">RM 70,000</option>
+                                        <option value="80000">RM 80,000</option>
+                                        <option value="100000">
+                                            RM 100,000
+                                        </option>
+                                    </select>
+                                </div>
+                                <div
+                                    class="form-group"
+                                    style="margin-bottom: 0"
+                                >
+                                    <label
+                                        >Asset Operational Age (Since
+                                        Inception)</label
+                                    >
+                                    <select id="car-age">
+                                        <option value="2">2 Years Old</option>
+                                        <option value="3">3 Years Old</option>
+                                        <option value="4">4 Years Old</option>
+                                        <option value="5" selected>
+                                            5 Years Old
+                                        </option>
+                                        <option value="6">6 Years Old</option>
+                                        <option value="7">7 Years Old</option>
+                                        <option value="8">8 Years Old</option>
+                                        <option value="9">9 Years Old</option>
+                                        <option value="10">10 Years Old</option>
+                                        <option value="11">11 Years Old</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="smart-insight-container"></div>
+
+                            <div
+                                id="used-car-notes"
+                                style="display: none; margin-bottom: 15px"
+                            ></div>
+
+                            <div class="form-group">
+                                <label id="price-input-label"
+                                    >Car Showroom Price (RM)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="car-price"
+                                    value="100000"
+                                    step="5000"
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label>Initial Down Payment Capital (RM)</label>
+                                <input
+                                    type="number"
+                                    id="down-payment"
+                                    value="10000"
+                                    step="1000"
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label
+                                    >Quoted Bank Nominal Interest Rate (%
+                                    p.a.)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="interest-rate"
+                                    value="3.4"
+                                    step="0.1"
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label>Statutory Contract Tenure Length</label>
+                                <select id="loan-term">
+                                    <option value="48">
+                                        4 Years (48 Months)
+                                    </option>
+                                    <option value="60">
+                                        5 Years (60 Months)
+                                    </option>
+                                    <option value="72">
+                                        6 Years (72 Months)
+                                    </option>
+                                    <option value="84" selected>
+                                        7 Years (84 Months)
+                                    </option>
+                                    <option value="96">
+                                        8 Years (96 Months)
+                                    </option>
+                                    <option value="108">
+                                        9 Years (108 Months)
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label
+                                    >Simulate Early Resale Liquidation?</label
+                                >
+                                <select id="sell-early"></select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0">
+                                <label
+                                    >Malaysian HP Interest Assessment
+                                    Standard</label
+                                >
+                                <select id="loan-rule">
+                                    <option value="new" selected>
+                                        2026 Reducing Balance (New Standard)
+                                    </option>
+                                    <option value="old">
+                                        Legacy Flat Rate Model (Rule of 78)
+                                    </option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="input-group highlight-box">
-                            <label>Plan to sell early?</label>
-                            <select
-                                id="sell-early"
-                                onchange="calculateAll()"
-                            ></select>
-                        </div>
+                        <button
+                            class="tab-btn"
+                            style="
+                                width: 100%;
+                                background: #10b981;
+                                color: #0f172a;
+                                border: none;
+                                font-weight: bold;
+                                padding: 12px;
+                                font-size: 14px;
+                            "
+                            onclick="saveCurrentToComparison()"
+                        >
+                            📌 Lock Configuration to Comparison
+                        </button>
                     </div>
 
-                    <div class="results-section">
-                        <h3>Financial Impact Statement</h3>
-
-                        <div class="metrics-grid">
+                    <div class="display-panel">
+                        <div class="metrics-panel">
                             <div class="metric-card">
-                                <span class="label">Monthly Payment</span>
-                                <span class="value text-blue" id="res-monthly"
-                                    >RM0.00</span
-                                >
+                                <label>Target Monthly Installment</label>
+                                <div class="metric-val" id="res-monthly">
+                                    RM 0.00
+                                </div>
                             </div>
                             <div class="metric-card">
-                                <span class="label" id="label-total-paid"
-                                    >Total Amount Paid</span
+                                <label id="label-total-paid"
+                                    >Total Paid over Tenure</label
                                 >
-                                <span class="value" id="res-total-paid"
-                                    >RM0.00</span
+                                <div
+                                    class="metric-val"
+                                    style="color: #f8fafc"
+                                    id="res-total-paid"
                                 >
+                                    RM 0.00
+                                </div>
                             </div>
                             <div class="metric-card">
-                                <span class="label" id="label-car-value"
-                                    >Car Value at Exit</span
+                                <label id="label-car-value"
+                                    >Car Value vs Balance Principal</label
                                 >
-                                <span
-                                    class="value text-green"
+                                <div
+                                    class="metric-val text-green"
                                     id="res-car-value"
-                                    >RM0.00</span
                                 >
+                                    RM 0.00
+                                </div>
                             </div>
-                            <div class="metric-card full-width loss-card">
-                                <span class="label"
-                                    >Net Ownership Financial Loss</span
+                            <div
+                                class="metric-card"
+                                style="
+                                    border-color: #f43f5e;
+                                    background: rgba(244, 63, 94, 0.02);
+                                "
+                            >
+                                <label
+                                    class="text-red"
+                                    style="font-weight: bold"
+                                    >Net True Ownership Loss</label
                                 >
-                                <span class="value text-red" id="res-total-loss"
-                                    >RM0.00</span
+                                <div
+                                    class="metric-val text-red"
+                                    id="res-total-loss"
                                 >
+                                    RM 0.00
+                                </div>
                             </div>
                         </div>
 
-                        <div
-                            class="chart-container"
-                            style="
-                                position: relative;
-                                margin-top: 20px;
-                                background: #1f2937;
-                                padding: 15px;
-                                border-radius: 6px;
-                            "
-                        >
-                            <canvas id="lossLineChart"></canvas>
+                        <div class="card">
+                            <h4 style="margin: 0 0 10px 0; color: #94a3b8">
+                                Capital Outflow vs Asset Residual Decay Trend
+                            </h4>
+                            <div class="chart-container">
+                                <canvas id="lossLineChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h4 style="margin: 0 0 5px 0; color: #94a3b8">
+                                The Duration Advantage: Annualized Loss Profile
+                            </h4>
+                            <div
+                                style="
+                                    font-size: 12px;
+                                    color: #64748b;
+                                    margin-bottom: 12px;
+                                    text-align: left;
+                                "
+                            >
+                                💡 <strong>Note:</strong> Vehicles lose value
+                                fastest in their early years. Retaining your
+                                vehicle over a longer holding cycle
+                                significantly minimizes your true realized loss
+                                per calendar year.
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="yearlyLossChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="target-tab" class="tab-content">
-                <div class="target-container">
-                    <h3>Affordable Vehicle Price Finder</h3>
-                    <p>
-                        Input your target budget details to reverse-engineer
-                        your maximum vehicle purchasing price.
+            <div id="comparison-tab" class="tab-content">
+                <div class="card">
+                    <h3 style="margin-top: 0; color: #38bdf8">
+                        Side-by-Side Model Cross Examination
+                    </h3>
+                    <p
+                        style="
+                            font-size: 13px;
+                            color: #94a3b8;
+                            margin-top: -5px;
+                        "
+                    >
+                        Compare up to 3 distinct asset scenarios simultaneously
+                        to weigh up-front costs against long-term capital loss
+                        metrics.
                     </p>
+                    <div
+                        id="comparison-matrix-view"
+                        style="overflow-x: auto"
+                    ></div>
+                </div>
+            </div>
 
-                    <div class="target-grid-inputs">
-                        <div class="input-group">
-                            <label>Target Monthly Payment (RM)</label>
-                            <input
-                                type="number"
-                                id="target-monthly"
-                                value="1000"
-                                oninput="calculateTarget()"
-                            />
-                        </div>
-                        <div class="input-group">
-                            <label>Max Interest Rate Tolerated (% p.a.)</label>
-                            <input
-                                type="number"
-                                id="target-rate"
-                                value="3.5"
-                                step="0.1"
-                                oninput="calculateTarget()"
-                            />
-                        </div>
+            <div id="target-tab" class="tab-content">
+                <div class="card" style="max-width: 750px; margin: 0 auto">
+                    <h3 style="margin-top: 0; color: #38bdf8">
+                        Car Price Finder Engine
+                    </h3>
+                    <div class="form-group">
+                        <label>Maximum Allocatable Monthly Budget (RM)</label>
+                        <input type="number" id="target-monthly" value="1200" />
+                    </div>
+                    <div class="form-group">
+                        <label
+                            >Assumed Expected Average Bank Rate (% p.a.)</label
+                        >
+                        <input type="number" id="target-rate" value="3.4" />
                     </div>
 
-                    <table class="target-table">
+                    <table class="comparison-table">
                         <thead>
-                            <tr>
-                                <th>Tenure</th>
-                                <th>
-                                    Max Car List Price (Assuming 10%
-                                    Downpayment)
+                            <tr
+                                style="
+                                    border-bottom: 2px solid #334155;
+                                    background: #1e293b;
+                                    color: #94a3b8;
+                                "
+                            >
+                                <th style="padding: 12px">Loan Term</th>
+                                <th style="padding: 12px">
+                                    Max Allowable Car Price (10% DP)
                                 </th>
-                                <th>Estimated Total Interest Paid</th>
+                                <th style="padding: 12px">
+                                    Total Interest Cost
+                                </th>
+                                <th style="padding: 12px">Action</th>
                             </tr>
                         </thead>
                         <tbody id="target-table-body"></tbody>
