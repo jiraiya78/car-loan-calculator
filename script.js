@@ -1,38 +1,193 @@
-function calculateLoan() {
-  const carPrice = parseFloat(document.getElementById("car-price").value);
-  const downPayment = parseFloat(document.getElementById("down-payment").value);
-  const annualInterestRate = parseFloat(
-    document.getElementById("interest-rate").value,
-  );
-  const loanTermMonths = parseInt(document.getElementById("loan-term").value);
+// Tab Switching System
+function switchTab(tabName) {
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((el) => el.classList.remove("active"));
+  document
+    .querySelectorAll(".tab-btn")
+    .forEach((el) => el.classList.remove("active"));
 
-  // Calculate Principal Loan Amount
-  const principal = carPrice - downPayment;
-
-  if (principal <= 0) {
-    document.getElementById("monthly-payment").innerText = "$0.00";
-    return;
-  }
-
-  // Convert annual interest rate to monthly decimal
-  const monthlyInterest = annualInterestRate / 100 / 12;
-
-  // If interest rate is 0%
-  let monthlyPayment;
-  if (monthlyInterest === 0) {
-    monthlyPayment = principal / loanTermMonths;
+  if (tabName === "analysis") {
+    document.getElementById("analysis-tab").classList.add("active");
+    event.target.classList.add("active");
+    calculateAll();
   } else {
-    // Amortization formula
-    monthlyPayment =
-      (principal *
-        (monthlyInterest * Math.pow(1 + monthlyInterest, loanTermMonths))) /
-      (Math.pow(1 + monthlyInterest, loanTermMonths) - 1);
+    document.getElementById("target-tab").classList.add("active");
+    event.target.classList.add("active");
+    calculateTarget();
   }
-
-  // Display result formatted as currency
-  document.getElementById("monthly-payment").innerText =
-    `$${monthlyPayment.toFixed(2)}`;
 }
 
-// Run the calculation once on load to populate initial values
-window.onload = calculateLoan;
+// Convert Flat Rate to Effective Interest Rate (EIR) for accurate Reducing Balance mapping
+function flatToEIR(flatRate, months) {
+  if (flatRate === 0) return 0;
+  const t = months / 12;
+  const totalInterest = flatRate * t;
+  // Approximated conversion formula used commonly by financial systems
+  return (2 * months * totalInterest) / (months * (1 + totalInterest) + 100);
+}
+
+// Main Calculation Flow
+function calculateAll() {
+  const condition = document.getElementById("car-condition").value;
+  const carPrice = parseFloat(document.getElementById("car-price").value) || 0;
+  const downPayment =
+    parseFloat(document.getElementById("down-payment").value) || 0;
+  const rateInput =
+    parseFloat(document.getElementById("interest-rate").value) || 0;
+  const totalTermMonths = parseInt(document.getElementById("loan-term").value);
+  const sellEarlyOpt = document.getElementById("sell-early").value;
+
+  const principal = carPrice - downPayment;
+  if (principal <= 0 || carPrice <= 0) return;
+
+  let monthlyPayment = 0;
+  let totalPaidOverTenure = 0;
+  let totalInterestPaid = 0;
+
+  // 1. Calculate Loan Structure based on Rule Type
+  if (document.getElementById("loan-rule").value === "old") {
+    // OLD SYSTEM: Flat interest rate
+    const annualizedInterest = principal * (rateInput / 100);
+    totalInterestPaid = annualizedInterest * (totalTermMonths / 12);
+    totalPaidOverTenure = principal + totalInterestPaid;
+    monthlyPayment = totalPaidOverTenure / totalTermMonths;
+  } else {
+    // NEW SYSTEM (2026 Act): Reducing balance via True Monthly Amortization
+    // Note: Banks convert quoted marketing rates into matching EIR
+    const estimatedEIR = flatToEIR(rateInput / 100, totalTermMonths);
+    const monthlyRate = estimatedEIR / 12;
+
+    if (monthlyRate === 0) {
+      monthlyPayment = principal / totalTermMonths;
+    } else {
+      monthlyPayment =
+        (principal *
+          (monthlyRate * Math.pow(1 + monthlyRate, totalTermMonths))) /
+        (Math.pow(1 + monthlyRate, totalTermMonths) - 1);
+    }
+    totalPaidOverTenure = monthlyPayment * totalTermMonths;
+    totalInterestPaid = totalPaidOverTenure - principal;
+  }
+
+  // 2. Determine Tracking Horizons (Early Sale vs Full Maturity)
+  const isEarlySale = sellEarlyOpt !== "no";
+  const analysisYears = isEarlySale
+    ? parseInt(sellEarlyOpt)
+    : totalTermMonths / 12;
+  const analysisMonths = analysisYears * 12;
+
+  // Update Display Labels dynamically
+  document.getElementById("label-total-paid").innerText = isEarlySale
+    ? `Total Paid up to Year ${analysisYears}`
+    : "Total Paid over Tenure";
+  document.getElementById("label-car-value").innerText =
+    `Car Value at Year ${analysisYears}`;
+
+  // 3. Compute Out-of-pocket tracking at specific evaluation boundary
+  let evaluationTotalOutflow = 0;
+  if (isEarlySale) {
+    // If selling early, owner pays downpayments, monthly payments up to that year, and settles the remaining loan principal
+    let remainingLoanBalance = 0;
+    if (document.getElementById("loan-rule").value === "old") {
+      // Rule of 78 formula for outstanding balance settlement
+      const totalInstallments = totalTermMonths;
+      const remainingInstallments = totalInstallments - analysisMonths;
+      const sumTotal = (totalInstallments * (totalInstallments + 1)) / 2;
+      const sumRemaining =
+        (remainingInstallments * (remainingInstallments + 1)) / 2;
+      const interestRebate = (sumRemaining / sumTotal) * totalInterestPaid;
+      remainingLoanBalance =
+        monthlyPayment * remainingInstallments - interestRebate;
+    } else {
+      // Standard reducing balance remaining principal calculation
+      const estimatedEIR = flatToEIR(rateInput / 100, totalTermMonths);
+      const monthlyRate = estimatedEIR / 12;
+      remainingLoanBalance = principal;
+      for (let m = 0; m < analysisMonths; m++) {
+        let interestPayment = remainingLoanBalance * monthlyRate;
+        let principalPayment = monthlyPayment - interestPayment;
+        remainingLoanBalance -= principalPayment;
+      }
+    }
+    evaluationTotalOutflow =
+      downPayment +
+      monthlyPayment * analysisMonths +
+      Math.max(0, remainingLoanBalance);
+  } else {
+    evaluationTotalOutflow = downPayment + totalPaidOverTenure;
+  }
+
+  // 4. Depreciation Mechanics (Compound 9% annually)
+  // Used cars normally take a slightly softer hit initially, but let's stick to base 9% p.a standard compounding loss
+  const depreciationRate = 0.09;
+  let finalCarValue = carPrice * Math.pow(1 - depreciationRate, analysisYears);
+
+  // 5. Net Financial Losses Calculation
+  const absoluteLoss = evaluationTotalOutflow - finalCarValue;
+
+  // 6. UI Render Updates
+  document.getElementById("res-monthly").innerText =
+    `RM ${monthlyPayment.toFixed(2)}`;
+  document.getElementById("res-total-paid").innerText =
+    `RM ${evaluationTotalOutflow.toFixed(2)}`;
+  document.getElementById("res-car-value").innerText =
+    `RM ${finalCarValue.toFixed(2)}`;
+  document.getElementById("res-total-loss").innerText =
+    `RM ${absoluteLoss.toFixed(2)}`;
+
+  // 7. Graph Render Logic via CSS Percentage Segments
+  const combinedTotalVal = evaluationTotalOutflow;
+  const valuePercent = (finalCarValue / combinedTotalVal) * 100;
+  const lossPercent = (absoluteLoss / combinedTotalVal) * 100;
+
+  document.getElementById("bar-value").style.width = `${valuePercent}%`;
+  document.getElementById("bar-loss").style.width = `${lossPercent}%`;
+}
+
+// TAB 2 Logic: Reverse calculation engine for target payments
+function calculateTarget() {
+  const targetMonthly =
+    parseFloat(document.getElementById("target-monthly").value) || 0;
+  const maxRate = parseFloat(document.getElementById("target-rate").value) || 0;
+  const tableBody = document.getElementById("target-table-body");
+
+  tableBody.innerHTML = "";
+  if (targetMonthly <= 0) return;
+
+  const terms = [48, 60, 72, 84, 96, 108]; // 4 to 9 years
+
+  terms.forEach((months) => {
+    // Compute under default New 2026 Ruleset
+    const estimatedEIR = flatToEIR(maxRate / 100, months);
+    const monthlyRate = estimatedEIR / 12;
+
+    let maxPrincipal = 0;
+    if (monthlyRate === 0) {
+      maxPrincipal = targetMonthly * months;
+    } else {
+      maxPrincipal =
+        targetMonthly /
+        ((monthlyRate * Math.pow(1 + monthlyRate, months)) /
+          (Math.pow(1 + monthlyRate, months) - 1));
+    }
+
+    // Assuming 10% cash downpayment requirement inside standard localized rule structures
+    const maxCarPrice = maxPrincipal / 0.9;
+    const totalPaid = targetMonthly * months + maxCarPrice * 0.1;
+    const totalInterest = targetMonthly * months - maxPrincipal;
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+            <td><strong>${months / 12} Years</strong> (${months} mos)</td>
+            <td class="text-green">RM ${maxCarPrice.toFixed(2)}</td>
+            <td class="text-red">RM ${totalInterest.toFixed(2)}</td>
+        `;
+    tableBody.appendChild(row);
+  });
+}
+
+// Initial script bootstrap activation
+window.onload = function () {
+  calculateAll();
+};

@@ -3,48 +3,248 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Simple Car Loan Calculator</title>
+        <title>Car Ownership Losses Analysis (MYR)</title>
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
-        <div class="calculator-container">
-            <h2>🚗 Car Loan Calculator</h2>
+        <div class="app-container">
+            <h1>🚗 Car Ownership Losses Analysis</h1>
+            <p class="subtitle">
+                Understand the real financial toll of vehicle depreciation and
+                interest in Malaysia
+            </p>
 
-            <div class="input-group">
-                <label for="car-price">Car Price ($):</label>
-                <input type="number" id="car-price" value="30000" />
+            <div class="resource-link">
+                ℹ️ Check current market interest rates on
+                <a href="https://ringgitplus.com/en/car-loan" target="_blank"
+                    >RinggitPlus Car Loans</a
+                >
             </div>
 
-            <div class="input-group">
-                <label for="down-payment">Down Payment ($):</label>
-                <input type="number" id="down-payment" value="5000" />
+            <!-- Navigation Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('analysis')">
+                    Loss Analysis
+                </button>
+                <button class="tab-btn" onclick="switchTab('target')">
+                    Target Budgeting
+                </button>
             </div>
 
-            <div class="input-group">
-                <label for="interest-rate">Interest Rate (%):</label>
-                <input
-                    type="number"
-                    id="interest-rate"
-                    value="4.5"
-                    step="0.1"
-                />
+            <!-- TAB 1: LOSS ANALYSIS -->
+            <div id="analysis-tab" class="tab-content active">
+                <div class="grid-container">
+                    <div class="input-section">
+                        <h3>Vehicle & Loan Details</h3>
+
+                        <div class="input-group">
+                            <label>Condition</label>
+                            <select
+                                id="car-condition"
+                                onchange="calculateAll()"
+                            >
+                                <option value="new">New Car</option>
+                                <option value="used">Used Car</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Car List Price (RM)</label>
+                            <input
+                                type="number"
+                                id="car-price"
+                                value="90000"
+                                oninput="calculateAll()"
+                            />
+                        </div>
+
+                        <div class="input-group">
+                            <label>Down Payment (RM)</label>
+                            <input
+                                type="number"
+                                id="down-payment"
+                                value="9000"
+                                oninput="calculateAll()"
+                            />
+                        </div>
+
+                        <div class="input-group">
+                            <label>Loan Rule Type</label>
+                            <select id="loan-rule" onchange="calculateAll()">
+                                <option value="new">
+                                    New Rule (Reducing Balance / EIR)
+                                </option>
+                                <option value="old">
+                                    Old Rule (Flat Rate / Rule of 78)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Interest Rate (% p.a.)</label>
+                            <input
+                                type="number"
+                                id="interest-rate"
+                                value="3.2"
+                                step="0.1"
+                                oninput="calculateAll()"
+                            />
+                        </div>
+
+                        <div class="input-group">
+                            <label>Loan Tenure</label>
+                            <select id="loan-term" onchange="calculateAll()">
+                                <option value="48">4 Years</option>
+                                <option value="60">5 Years</option>
+                                <option value="72">6 Years</option>
+                                <option value="84" selected>
+                                    7 Years (Default)
+                                </option>
+                                <option value="96">8 Years</option>
+                                <option value="108">9 Years</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group highlight-box">
+                            <label>Plan to sell early?</label>
+                            <select id="sell-early" onchange="calculateAll()">
+                                <option value="no">
+                                    No, keep until loan ends
+                                </option>
+                                <option value="5">
+                                    Yes, sell after 5 Years
+                                </option>
+                                <option value="6">
+                                    Yes, sell after 6 Years
+                                </option>
+                                <option value="7">
+                                    Yes, sell after 7 Years
+                                </option>
+                                <option value="8">
+                                    Yes, sell after 8 Years
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="results-section">
+                        <h3>Financial Impact Statement</h3>
+
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <span class="label">Monthly Payment</span>
+                                <span class="value text-blue" id="res-monthly"
+                                    >RM0.00</span
+                                >
+                            </div>
+                            <div class="metric-card">
+                                <span class="label" id="label-total-paid"
+                                    >Total Amount Paid</span
+                                >
+                                <span class="value" id="res-total-paid"
+                                    >RM0.00</span
+                                >
+                            </div>
+                            <div class="metric-card">
+                                <span class="label" id="label-car-value"
+                                    >Car Value at Exit</span
+                                >
+                                <span
+                                    class="value text-green"
+                                    id="res-car-value"
+                                    >RM0.00</span
+                                >
+                            </div>
+                            <div class="metric-card full-width loss-card">
+                                <span class="label"
+                                    >Net Ownership Financial Loss</span
+                                >
+                                <span class="value text-red" id="res-total-loss"
+                                    >RM0.00</span
+                                >
+                            </div>
+                        </div>
+
+                        <div class="visual-bar-container">
+                            <h4>Loss Breakdown Visualization</h4>
+                            <div class="progress-bar-wrapper">
+                                <div
+                                    id="bar-value"
+                                    class="progress-segment segment-value"
+                                    title="Remaining Car Value"
+                                ></div>
+                                <div
+                                    id="bar-loss"
+                                    class="progress-segment segment-loss"
+                                    title="Total Financial Loss"
+                                ></div>
+                            </div>
+                            <div class="bar-legend">
+                                <span class="legend-item"
+                                    ><span
+                                        class="legend-color val-color"
+                                    ></span>
+                                    Recoverable Car Value</span
+                                >
+                                <span class="legend-item"
+                                    ><span
+                                        class="legend-color loss-color"
+                                    ></span>
+                                    Absolute Sunk Loss</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="input-group">
-                <label for="loan-term">Loan Term (Months):</label>
-                <select id="loan-term">
-                    <option value="36">36 Months (3 Years)</option>
-                    <option value="48">48 Months (4 Years)</option>
-                    <option value="60" selected>60 Months (5 Years)</option>
-                    <option value="72">72 Months (6 Years)</option>
-                </select>
-            </div>
+            <!-- TAB 2: TARGET BUDGETING -->
+            <div id="target-tab" class="tab-content">
+                <div class="target-container">
+                    <h3>Affordable Vehicle Price Finder</h3>
+                    <p>
+                        Input your target budget details to reverse-engineer
+                        your maximum vehicle purchasing price.
+                    </p>
 
-            <button onclick="calculateLoan()">Calculate</button>
+                    <div class="target-grid-inputs">
+                        <div class="input-group">
+                            <label>Target Monthly Payment (RM)</label>
+                            <input
+                                type="number"
+                                id="target-monthly"
+                                value="1000"
+                                oninput="calculateTarget()"
+                            />
+                        </div>
+                        <div class="input-group">
+                            <label>Max Interest Rate Tolerated (% p.a.)</label>
+                            <input
+                                type="number"
+                                id="target-rate"
+                                value="3.5"
+                                step="0.1"
+                                oninput="calculateTarget()"
+                            />
+                        </div>
+                    </div>
 
-            <div class="results">
-                <h3>Estimated Monthly Payment:</h3>
-                <div id="monthly-payment" class="payment-amount">$0.00</div>
+                    <table class="target-table">
+                        <thead>
+                            <tr>
+                                <th>Tenure</th>
+                                <th>
+                                    Max Car List Price (Assuming 10%
+                                    Downpayment)
+                                </th>
+                                <th>Estimated Total Interest Paid</th>
+                            </tr>
+                        </thead>
+                        <tbody id="target-table-body">
+                            <!-- Generated via JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
