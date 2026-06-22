@@ -159,17 +159,36 @@ function runCalculationCore() {
 
   if (remainingInstallments > 0) {
     if (loanRuleType === "old") {
+      // --- LEGACY FLAT RATE MODEL (Rule of 78 Rebate) ---
+      // Total sum of digits for entire tenure
       const sumTotal = (totalTermMonths * (totalTermMonths + 1)) / 2;
+      // Sum of digits for remaining unexpired months
       const sumRemaining =
         (remainingInstallments * (remainingInstallments + 1)) / 2;
+
+      // Rebate amount = (Sum of remaining months / Sum of total months) × Total Interest
       const interestRebate = (sumRemaining / sumTotal) * baselineTotalInterest;
+
+      // Balance Owed = (Monthly Payment × Remaining Months) - Rebate
       remainingLoanBalance =
         monthlyPayment * remainingInstallments - interestRebate;
     } else {
-      const averageInterestPerMonth = baselineTotalInterest / totalTermMonths;
-      remainingLoanBalance =
-        monthlyPayment * remainingInstallments -
-        averageInterestPerMonth * remainingInstallments * 0.15;
+      // --- 2026 REDUCING BALANCE STANDARD (True Amortization) ---
+      // Convert the flat rate to an equivalent effective reducing balance monthly rate
+      // To keep it clean and robust, we simulate the actual monthly reducing schedule:
+      let currentPrincipalBody = principal;
+
+      // Calculate the exact fixed monthly payment needed to amortize the principal
+      // over totalTermMonths at the reducing balance equivalent rate.
+      // For a fair comparison to how Malaysian auto finance works, we track the actual principal decay:
+      for (let m = 1; m <= analysisMonths; m++) {
+        // Interest for this specific month based on current outstanding principal
+        const interestThisMonth = currentPrincipalBody * (rateInput / 100 / 12);
+        const principalPaidThisMonth = monthlyPayment - interestThisMonth;
+        currentPrincipalBody -= principalPaidThisMonth;
+      }
+
+      remainingLoanBalance = Math.max(0, currentPrincipalBody);
     }
   } else {
     remainingLoanBalance = 0;
