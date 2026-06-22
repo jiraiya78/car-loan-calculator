@@ -1,4 +1,4 @@
-// Tab Switching System
+// Tab Switching System (Fixed event handler issue)
 function switchTab(tabName) {
   document
     .querySelectorAll(".tab-content")
@@ -9,11 +9,14 @@ function switchTab(tabName) {
 
   if (tabName === "analysis") {
     document.getElementById("analysis-tab").classList.add("active");
-    event.target.classList.add("active");
+    // Find the analysis button using an explicit query selector instead of event.target
+    document
+      .querySelector("button[onclick*='analysis']")
+      .classList.add("active");
     calculateAll();
   } else {
     document.getElementById("target-tab").classList.add("active");
-    event.target.classList.add("active");
+    document.querySelector("button[onclick*='target']").classList.add("active");
     calculateTarget();
   }
 }
@@ -39,7 +42,15 @@ function calculateAll() {
   const sellEarlyOpt = document.getElementById("sell-early").value;
 
   const principal = carPrice - downPayment;
-  if (principal <= 0 || carPrice <= 0) return;
+  if (principal <= 0 || carPrice <= 0) {
+    document.getElementById("res-monthly").innerText = "RM 0.00";
+    document.getElementById("res-total-paid").innerText = "RM 0.00";
+    document.getElementById("res-car-value").innerText = "RM 0.00";
+    document.getElementById("res-total-loss").innerText = "RM 0.00";
+    document.getElementById("bar-value").style.width = "0%";
+    document.getElementById("bar-loss").style.width = "0%";
+    return;
+  }
 
   let monthlyPayment = 0;
   let totalPaidOverTenure = 0;
@@ -54,7 +65,6 @@ function calculateAll() {
     monthlyPayment = totalPaidOverTenure / totalTermMonths;
   } else {
     // NEW SYSTEM (2026 Act): Reducing balance via True Monthly Amortization
-    // Note: Banks convert quoted marketing rates into matching EIR
     const estimatedEIR = flatToEIR(rateInput / 100, totalTermMonths);
     const monthlyRate = estimatedEIR / 12;
 
@@ -87,7 +97,6 @@ function calculateAll() {
   // 3. Compute Out-of-pocket tracking at specific evaluation boundary
   let evaluationTotalOutflow = 0;
   if (isEarlySale) {
-    // If selling early, owner pays downpayments, monthly payments up to that year, and settles the remaining loan principal
     let remainingLoanBalance = 0;
     if (document.getElementById("loan-rule").value === "old") {
       // Rule of 78 formula for outstanding balance settlement
@@ -119,7 +128,6 @@ function calculateAll() {
   }
 
   // 4. Depreciation Mechanics (Compound 9% annually)
-  // Used cars normally take a slightly softer hit initially, but let's stick to base 9% p.a standard compounding loss
   const depreciationRate = 0.09;
   let finalCarValue = carPrice * Math.pow(1 - depreciationRate, analysisYears);
 
@@ -158,7 +166,6 @@ function calculateTarget() {
   const terms = [48, 60, 72, 84, 96, 108]; // 4 to 9 years
 
   terms.forEach((months) => {
-    // Compute under default New 2026 Ruleset
     const estimatedEIR = flatToEIR(maxRate / 100, months);
     const monthlyRate = estimatedEIR / 12;
 
@@ -172,9 +179,7 @@ function calculateTarget() {
           (Math.pow(1 + monthlyRate, months) - 1));
     }
 
-    // Assuming 10% cash downpayment requirement inside standard localized rule structures
     const maxCarPrice = maxPrincipal / 0.9;
-    const totalPaid = targetMonthly * months + maxCarPrice * 0.1;
     const totalInterest = targetMonthly * months - maxPrincipal;
 
     const row = document.createElement("tr");
@@ -187,7 +192,7 @@ function calculateTarget() {
   });
 }
 
-// Initial script bootstrap activation
+// Initial bootstrap activation
 window.onload = function () {
   calculateAll();
 };
