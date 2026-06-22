@@ -40,6 +40,7 @@ function updateSellEarlyOptions() {
     parseInt(document.getElementById("loan-term").value) || 84;
   const maxYears = totalTermMonths / 12;
   const sellEarlySelect = document.getElementById("sell-early");
+  if (!sellEarlySelect) return;
 
   const currentSelection = sellEarlySelect.value || "no";
   sellEarlySelect.innerHTML =
@@ -61,20 +62,41 @@ function updateSellEarlyOptions() {
   }
 }
 
-// FIXED: BANK NEGARA COMPLIANT CAR LOAN INSTALMENT CALCULATOR
+// BANK NEGARA COMPLIANT CAR LOAN INSTALMENT CALCULATOR
 function getMonthlyInstalment(principal, annualRatePct, months) {
-  // Correcting the variable typo so the formula doesn't halt execution
   const flatAnnualInterest = principal * (annualRatePct / 100);
   const totalInterestOverTenure = flatAnnualInterest * (months / 12);
-  const standardPayment = (principal + totalInterestOverTenure) / months;
+  return (principal + totalInterestOverTenure) / months;
+}
 
-  return standardPayment;
+// Function to handle showing/hiding used car options and dynamic logic labels
+function handleConditionChange() {
+  const condition = document.getElementById("car-condition").value;
+  const usedOptionsWrapper = document.getElementById("used-options-wrapper");
+  const usedCarNotes = document.getElementById("used-car-notes");
+  const priceInputLabel = document.getElementById("price-input-label");
+
+  if (condition === "used") {
+    if (usedOptionsWrapper) usedOptionsWrapper.style.display = "block";
+    if (usedCarNotes) usedCarNotes.style.display = "block";
+    if (priceInputLabel)
+      priceInputLabel.innerText = "Used Car Purchase Price (RM)";
+
+    // Sync the main price slider to the value chosen in the used selection matrix
+    const usedPriceValue = document.getElementById("used-list-price").value;
+    document.getElementById("car-price").value = usedPriceValue;
+  } else {
+    if (usedOptionsWrapper) usedOptionsWrapper.style.display = "none";
+    if (usedCarNotes) usedCarNotes.style.display = "none";
+    if (priceInputLabel) priceInputLabel.innerText = "Car Price (RM)";
+  }
+  calculateAll();
 }
 
 // Main Calculation Flow
 function calculateAll() {
   const condition = document.getElementById("car-condition").value;
-  const carPrice = parseFloat(document.getElementById("car-price").value) || 0;
+  let carPrice = parseFloat(document.getElementById("car-price").value) || 0;
   const downPayment =
     parseFloat(document.getElementById("down-payment").value) || 0;
   const rateInput =
@@ -84,9 +106,15 @@ function calculateAll() {
   const sellEarlyOpt = document.getElementById("sell-early").value;
   const loanRuleType = document.getElementById("loan-rule").value;
 
+  // Overrides price parameter bindings if structural state points to an aged premium model selection
+  if (condition === "used") {
+    carPrice =
+      parseFloat(document.getElementById("used-list-price").value) || 60000;
+    document.getElementById("car-price").value = carPrice;
+  }
+
   const principal = carPrice - downPayment;
 
-  // UI Safeguard if principal goes negative or fields are empty
   if (principal <= 0 || carPrice <= 0) {
     document.getElementById("res-monthly").innerText = "RM 0.00";
     document.getElementById("res-total-paid").innerText = "RM 0.00";
@@ -115,14 +143,13 @@ function calculateAll() {
   document.getElementById("label-car-value").innerText =
     `Car Value at Year ${analysisYears}`;
 
-  // Compute Early Settlement Rebates fairly based on 2026 statutory guidelines
+  // Compute Early Settlement Rebates fairly based on statutory guidelines
   let evaluationTotalOutflow = 0;
   if (isEarlySale) {
     let remainingLoanBalance = 0;
     const remainingInstallments = totalTermMonths - analysisMonths;
 
     if (loanRuleType === "old") {
-      // Front-loaded legacy Rule of 78 formula
       const sumTotal = (totalTermMonths * (totalTermMonths + 1)) / 2;
       const sumRemaining =
         (remainingInstallments * (remainingInstallments + 1)) / 2;
@@ -130,7 +157,6 @@ function calculateAll() {
       remainingLoanBalance =
         monthlyPayment * remainingInstallments - interestRebate;
     } else {
-      // 2026 Reducing Balance Settlement tracking
       const averageInterestPerMonth = baselineTotalInterest / totalTermMonths;
       remainingLoanBalance =
         monthlyPayment * remainingInstallments -
@@ -144,20 +170,38 @@ function calculateAll() {
     evaluationTotalOutflow = downPayment + monthlyPayment * totalTermMonths;
   }
 
-  // Dynamic Depreciation Weights mapping your segments condition scenario directly
+  // Dynamic Depreciation & Reverse-Engineered Original New Price Logic
   let finalCarValue = 0;
-  if (condition === "used") {
-    // A used car priced at 60k was worth 100k when new (approx 1.66x original value).
-    // It has already completed its heaviest depreciation hit, so it loses value slightly slower now (e.g., 7% yearly).
-    const originalEstimatedValue = carPrice * 1.66;
-    finalCarValue =
-      originalEstimatedValue * Math.pow(1 - 0.12, analysisYears + 4);
+  let originalNewPrice = carPrice;
 
-    // Safety cap to keep calculations bounded realistically
-    if (finalCarValue > carPrice)
-      finalCarValue = carPrice * Math.pow(1 - 0.07, analysisYears);
+  if (condition === "used") {
+    const carAge = parseInt(document.getElementById("car-age").value) || 5;
+
+    // Reverse calculation steps mapping back original market entry thresholds
+    if (carAge === 2) {
+      originalNewPrice = carPrice / (0.8 * 0.88);
+    } else if (carAge <= 5) {
+      originalNewPrice = carPrice / (0.8 * Math.pow(0.88, carAge - 1));
+    } else {
+      originalNewPrice =
+        carPrice / (0.8 * Math.pow(0.88, 4) * Math.pow(0.93, carAge - 5));
+    }
+
+    // Display context blocks highlighting the original segments value metrics
+    const noteContainer = document.getElementById("used-car-notes");
+    if (noteContainer) {
+      noteContainer.innerHTML = `
+                <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 12px; margin-top: 10px; border-radius: 4px;">
+                    <span style="color: #38bdf8; font-weight: bold;">💡 Smart Buyer Insight:</span><br>
+                    This <strong>${carAge}-year-old</strong> vehicle valued at <strong>${formatMYR(carPrice)}</strong> had an estimated original showroom price of <strong>${formatMYR(originalNewPrice)}</strong> when brand new.<br>
+                    <small style="color: #94a3b8; display: block; margin-top: 4px;">Instead of buying a smaller, brand-new entry-level vehicle, you are securing a premium segment car that has already shed its heaviest depreciation cycle.</small>
+                </div>
+            `;
+    }
+
+    // Forward depreciation from the current point of purchase forward
+    finalCarValue = carPrice * Math.pow(1 - 0.08, analysisYears);
   } else {
-    // New car suffers standard, heavy initial year depreciation layers (9% standard)
     finalCarValue = carPrice * Math.pow(1 - 0.09, analysisYears);
   }
 
@@ -172,11 +216,10 @@ function calculateAll() {
 
   document.getElementById("res-total-loss").innerHTML = `
         <div style="font-size: 24px; margin-bottom: 5px;">${formatMYR(absoluteLoss)}</div>
-        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">跌 ~${formatMYR(absoluteLoss / analysisYears)} / year</div>
-        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">跌 ~${formatMYR(absoluteLoss / analysisMonths)} / month</div>
+        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">📉 ~${formatMYR(absoluteLoss / analysisYears)} / year</div>
+        <div style="font-size: 13px; font-weight: normal; color: #fca5a5;">📉 ~${formatMYR(absoluteLoss / analysisMonths)} / month</div>
     `;
 
-  // Render dynamic visual graph models
   const chartPoints = calculateYearlyDataPoints(
     carPrice,
     downPayment,
@@ -188,7 +231,7 @@ function calculateAll() {
   renderLineChart(chartPoints);
 }
 
-// Compute coordinated path vectors
+// Compute coordinated path vectors for visual graph models
 function calculateYearlyDataPoints(
   carPrice,
   downPayment,
@@ -246,10 +289,7 @@ function calculateYearlyDataPoints(
 
     let currentCarValue = 0;
     if (condition === "used") {
-      const originalEstimatedValue = carPrice * 1.66;
-      currentCarValue = originalEstimatedValue * Math.pow(1 - 0.12, y + 4);
-      if (currentCarValue > carPrice)
-        currentCarValue = carPrice * Math.pow(1 - 0.07, y);
+      currentCarValue = carPrice * Math.pow(1 - 0.08, y);
     } else {
       currentCarValue = carPrice * Math.pow(1 - 0.09, y);
     }
@@ -262,7 +302,7 @@ function calculateYearlyDataPoints(
 
 function renderLineChart(chartPoints) {
   const canvasElement = document.getElementById("lossLineChart");
-  if (!canvasElement) return; // Fail-soft if template canvas missing
+  if (!canvasElement) return;
 
   const ctx = canvasElement.getContext("2d");
   if (lossChartInstance !== null) {
@@ -343,10 +383,19 @@ function calculateTarget() {
   });
 }
 
-// Event bindings to link the calculation engine safely to HTML inputs
+// Event bindings layout targeting new elements
 document.addEventListener("DOMContentLoaded", function () {
+  const carConditionDropdown = document.getElementById("car-condition");
+  if (carConditionDropdown) {
+    carConditionDropdown.addEventListener("change", handleConditionChange);
+  }
+
+  const usedPriceSelect = document.getElementById("used-list-price");
+  const usedAgeSelect = document.getElementById("car-age");
+  if (usedPriceSelect) usedPriceSelect.addEventListener("change", calculateAll);
+  if (usedAgeSelect) usedAgeSelect.addEventListener("change", calculateAll);
+
   const inputIds = [
-    "car-condition",
     "car-price",
     "down-payment",
     "interest-rate",
@@ -373,6 +422,8 @@ document.addEventListener("DOMContentLoaded", function () {
   if (targetRateInput)
     targetRateInput.addEventListener("input", calculateTarget);
 
+  // Initial load system configuration setup
+  handleConditionChange();
   updateSellEarlyOptions();
   calculateAll();
 });

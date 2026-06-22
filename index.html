@@ -47,6 +47,95 @@
                             </select>
                         </div>
 
+                        <!-- Used Car Context Sub-Form Configuration Group -->
+                        <div
+                            id="used-options-wrapper"
+                            style="
+                                display: none;
+                                margin-top: 15px;
+                                background: #1e293b;
+                                padding: 15px;
+                                border-radius: 6px;
+                                border: 1px solid #334155;
+                            "
+                        >
+                            <div style="margin-bottom: 12px">
+                                <label
+                                    style="
+                                        display: block;
+                                        font-size: 14px;
+                                        margin-bottom: 5px;
+                                        color: #94a3b8;
+                                    "
+                                    >Used Car Market Price Target</label
+                                >
+                                <select
+                                    id="used-list-price"
+                                    style="
+                                        width: 100%;
+                                        padding: 10px;
+                                        background: #0f172a;
+                                        border: 1px solid #475569;
+                                        color: white;
+                                        border-radius: 4px;
+                                    "
+                                >
+                                    <option value="30000">RM 30,000</option>
+                                    <option value="40000">RM 40,000</option>
+                                    <option value="50000">RM 50,000</option>
+                                    <option value="60000" selected>
+                                        RM 60,000
+                                    </option>
+                                    <option value="70000">RM 70,000</option>
+                                    <option value="80000">RM 80,000</option>
+                                    <option value="100000">RM 100,000</option>
+                                    <option value="120000">RM 120,000</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label
+                                    style="
+                                        display: block;
+                                        font-size: 14px;
+                                        margin-bottom: 5px;
+                                        color: #94a3b8;
+                                    "
+                                    >Vehicle Age (Since Manufacture)</label
+                                >
+                                <select
+                                    id="car-age"
+                                    style="
+                                        width: 100%;
+                                        padding: 10px;
+                                        background: #0f172a;
+                                        border: 1px solid #475569;
+                                        color: white;
+                                        border-radius: 4px;
+                                    "
+                                >
+                                    <option value="2">2 Years Old</option>
+                                    <option value="3">3 Years Old</option>
+                                    <option value="4">4 Years Old</option>
+                                    <option value="5" selected>
+                                        5 Years Old
+                                    </option>
+                                    <option value="6">6 Years Old</option>
+                                    <option value="7">7 Years Old</option>
+                                    <option value="8">8 Years Old</option>
+                                    <option value="9">9 Years Old</option>
+                                    <option value="10">10 Years Old</option>
+                                    <option value="11">11 Years Old</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Output target placeholder node for reverse math string calculations injection -->
+                        <div
+                            id="used-car-notes"
+                            style="display: none; margin-bottom: 15px"
+                        ></div>
+
                         <div class="input-group">
                             <label>Car List Price (RM)</label>
                             <input
