@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Car Ownership Losses Analysis (MYR)</title>
         <link rel="stylesheet" href="style.css" />
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
     <body>
         <div class="app-container">
@@ -21,7 +22,6 @@
                 >
             </div>
 
-            <!-- Navigation Tabs -->
             <div class="tabs">
                 <button class="tab-btn active" onclick="switchTab('analysis')">
                     Loss Analysis
@@ -31,7 +31,6 @@
                 </button>
             </div>
 
-            <!-- TAB 1: LOSS ANALYSIS -->
             <div id="analysis-tab" class="tab-content active">
                 <div class="grid-container">
                     <div class="input-section">
@@ -93,7 +92,13 @@
 
                         <div class="input-group">
                             <label>Loan Tenure</label>
-                            <select id="loan-term" onchange="calculateAll()">
+                            <select
+                                id="loan-term"
+                                onchange="
+                                    updateSellEarlyOptions();
+                                    calculateAll();
+                                "
+                            >
                                 <option value="48">4 Years</option>
                                 <option value="60">5 Years</option>
                                 <option value="72">6 Years</option>
@@ -107,23 +112,10 @@
 
                         <div class="input-group highlight-box">
                             <label>Plan to sell early?</label>
-                            <select id="sell-early" onchange="calculateAll()">
-                                <option value="no">
-                                    No, keep until loan ends
-                                </option>
-                                <option value="5">
-                                    Yes, sell after 5 Years
-                                </option>
-                                <option value="6">
-                                    Yes, sell after 6 Years
-                                </option>
-                                <option value="7">
-                                    Yes, sell after 7 Years
-                                </option>
-                                <option value="8">
-                                    Yes, sell after 8 Years
-                                </option>
-                            </select>
+                            <select
+                                id="sell-early"
+                                onchange="calculateAll()"
+                            ></select>
                         </div>
                     </div>
 
@@ -165,40 +157,22 @@
                             </div>
                         </div>
 
-                        <div class="visual-bar-container">
-                            <h4>Loss Breakdown Visualization</h4>
-                            <div class="progress-bar-wrapper">
-                                <div
-                                    id="bar-value"
-                                    class="progress-segment segment-value"
-                                    title="Remaining Car Value"
-                                ></div>
-                                <div
-                                    id="bar-loss"
-                                    class="progress-segment segment-loss"
-                                    title="Total Financial Loss"
-                                ></div>
-                            </div>
-                            <div class="bar-legend">
-                                <span class="legend-item"
-                                    ><span
-                                        class="legend-color val-color"
-                                    ></span>
-                                    Recoverable Car Value</span
-                                >
-                                <span class="legend-item"
-                                    ><span
-                                        class="legend-color loss-color"
-                                    ></span>
-                                    Absolute Sunk Loss</span
-                                >
-                            </div>
+                        <div
+                            class="chart-container"
+                            style="
+                                position: relative;
+                                margin-top: 20px;
+                                background: #1f2937;
+                                padding: 15px;
+                                border-radius: 6px;
+                            "
+                        >
+                            <canvas id="lossLineChart"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 2: TARGET BUDGETING -->
             <div id="target-tab" class="tab-content">
                 <div class="target-container">
                     <h3>Affordable Vehicle Price Finder</h3>
@@ -240,9 +214,7 @@
                                 <th>Estimated Total Interest Paid</th>
                             </tr>
                         </thead>
-                        <tbody id="target-table-body">
-                            <!-- Generated via JS -->
-                        </tbody>
+                        <tbody id="target-table-body"></tbody>
                     </table>
                 </div>
             </div>
